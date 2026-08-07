@@ -191,3 +191,18 @@ Nộp theo [`SUBMISSION.md`](SUBMISSION.md).
 - [NeMo Guardrails](https://github.com/NVIDIA/NeMo-Guardrails)
 - [Google ADK](https://google.github.io/adk-docs/)
 - [AI Safety Fundamentals](https://aisafetyfundamentals.com/)
+
+## Streamlit UI
+
+The protected VinBank assistant can be run locally with Streamlit. Install the
+requirements using an active Python environment, configure
+`OPENROUTER_API_KEY` in `.env`, then start the app from the repository root:
+
+```powershell
+python -m pip install -r requirements.txt
+python -m streamlit run app.py
+```
+
+The app includes protected chat, a reviewer queue for high-risk actions, and
+a session-only security console. It never performs a real bank transfer and it
+does not accept or display API keys in the browser.

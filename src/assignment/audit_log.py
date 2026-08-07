@@ -75,6 +75,49 @@ class AuditLogPlugin:
         self.logs.append(record)
         return record
 
+    @classmethod
+    def _sanitize_metadata(cls, value):
+        """Recursively sanitize event metadata before it enters an audit log."""
+        if isinstance(value, dict):
+            return {
+                str(key): cls._sanitize_metadata(item)
+                for key, item in value.items()
+            }
+        if isinstance(value, (list, tuple)):
+            return [cls._sanitize_metadata(item) for item in value]
+        if isinstance(value, (str, int, float, bool)) or value is None:
+            return cls._redact_for_log(str(value)) if isinstance(value, str) else value
+        return cls._redact_for_log(str(value))
+
+    def record_event(
+        self,
+        *,
+        user_id: str,
+        request_id: str,
+        event_type: str,
+        decision: str | None = None,
+        layer: str | None = None,
+        metadata: dict | None = None,
+    ) -> dict:
+        """Append a correlated non-terminal event without closing an open span.
+
+        HITL requests need an observable ``queued`` event before a reviewer
+        makes a terminal decision.  Metadata is sanitized recursively so the
+        event can contain useful context without becoming a secret sink.
+        """
+        record = {
+            "request_id": str(request_id),
+            "correlation_id": str(request_id),
+            "user_id": str(user_id or "anonymous"),
+            "event_type": str(event_type),
+            "decision": decision,
+            "layer": layer,
+            "metadata": self._sanitize_metadata(metadata or {}),
+            "timestamp": utc_now_iso(),
+        }
+        self.logs.append(record)
+        return record
+
     def export_json(self, filepath: str = "outputs/audit_log.json") -> Path:
         """Persist sanitized, inspectable audit records in UTF-8 JSON."""
         path = Path(filepath)

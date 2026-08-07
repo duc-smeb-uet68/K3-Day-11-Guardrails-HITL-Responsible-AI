@@ -4,7 +4,13 @@ Lab 11 — Helper Utilities
 from core.adk_compat import types
 
 
-async def chat_with_agent(agent, runner, user_message: str, session_id=None):
+async def chat_with_agent(
+    agent,
+    runner,
+    user_message: str,
+    session_id=None,
+    user_id: str = "student",
+):
     """Send a message to the agent and get the response.
 
     Args:
@@ -12,11 +18,12 @@ async def chat_with_agent(agent, runner, user_message: str, session_id=None):
         runner: The InMemoryRunner instance
         user_message: Plain text message to send
         session_id: Optional session ID to continue a conversation
+        user_id: Stable user identifier used by the runner and rate limiter.
 
     Returns:
         Tuple of (response_text, session)
     """
-    user_id = "student"
+    user_id = str(user_id or "student")
     app_name = runner.app_name
 
     session = None
