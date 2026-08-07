@@ -16,6 +16,13 @@ import argparse
 from core.config import setup_api_key
 
 
+# Source files and artifacts are UTF-8.  Prefer UTF-8 console output too so a
+# Windows legacy code page cannot abort a completed security suite on a status
+# message containing Vietnamese text or an arrow.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
+
 async def part1_attacks():
     """Hạng mục B: attack unsafe agent, then try guards agent (điểm cộng)."""
     print("\n" + "=" * 60)
@@ -28,7 +35,12 @@ async def part1_attacks():
 
     # --- Unsafe (required for hạng mục B) ---
     unsafe_agent, unsafe_runner = create_unsafe_agent()
-    await test_agent(unsafe_agent, unsafe_runner)
+    try:
+        await test_agent(unsafe_agent, unsafe_runner)
+    except Exception as exc:
+        # run_attacks records per-prompt runtime errors as evidence; do not
+        # fabricate a response if the local model runtime is unavailable.
+        print(f"Unsafe-agent smoke test unavailable: {type(exc).__name__}")
 
     print("\n--- Attacks on UNSAFE agent (hạng mục B) ---")
     unsafe_results = await run_attacks(
@@ -42,8 +54,15 @@ async def part1_attacks():
         guards_agent, guards_runner, target_name="guards"
     )
 
-    print("\n--- Generating AI attacks (TODO 14) ---")
-    ai_attacks = await generate_ai_attacks()
+    print("\n--- Generating AI attacks ---")
+    ai_attack_cases = await generate_ai_attacks()
+    print("\n--- Running AI-generated attacks on UNSAFE agent ---")
+    ai_attacks = await run_attacks(
+        unsafe_agent,
+        unsafe_runner,
+        prompts=ai_attack_cases,
+        target_name="unsafe_ai",
+    )
 
     save_attack_results(
         unsafe_results=unsafe_results,
@@ -85,7 +104,7 @@ async def part2_guardrails():
     # Part 2B: Output guardrails
     print("\n--- Part 2B: Output Guardrails ---")
     from guardrails.output_guardrails import test_content_filter, _init_judge
-    _init_judge()  # Initialize LLM judge if TODO 5 is done
+    _init_judge()
     test_content_filter()
 
     # Part 2C: NeMo Guardrails
@@ -109,23 +128,21 @@ async def part3_testing():
     from testing.testing import run_comparison, print_comparison, SecurityTestPipeline
     from agents.agent import create_unsafe_agent
 
-    # TODO 9: Before vs after comparison
-    print("\n--- TODO 9: Before/After Comparison ---")
+    print("\n--- Before/After Comparison ---")
     unprotected, protected = await run_comparison()
     if unprotected and protected:
         print_comparison(unprotected, protected)
     else:
-        print("Complete TODO 9 to see the comparison.")
+        print("No comparison results were returned.")
 
-    # TODO 10: Automated security pipeline
-    print("\n--- TODO 10: Security Test Pipeline ---")
+    print("\n--- Automated Security Test Pipeline ---")
     agent, runner = create_unsafe_agent()
     pipeline = SecurityTestPipeline(agent, runner)
     results = await pipeline.run_all()
     if results:
         pipeline.print_report(results)
     else:
-        print("Complete TODO 10 to see the pipeline report.")
+        print("No security-test results were returned.")
 
 
 def part4_hitl():
@@ -136,12 +153,10 @@ def part4_hitl():
 
     from hitl.hitl import test_confidence_router, test_hitl_points
 
-    # TODO 11: Confidence Router
-    print("\n--- TODO 11: Confidence Router ---")
+    print("\n--- Confidence Router ---")
     test_confidence_router()
 
-    # TODO 12: HITL Decision Points
-    print("\n--- TODO 12: HITL Decision Points ---")
+    print("\n--- HITL Decision Points ---")
     test_hitl_points()
 
 
@@ -150,7 +165,7 @@ async def part5_assignment_suite():
     import os
 
     print("\n" + "=" * 60)
-    print("PART 5: Assignment suite → outputs/*.json")
+    print("PART 5: Assignment suite -> outputs/*.json")
     print("=" * 60)
 
     from assignment.pipeline import (
@@ -160,23 +175,13 @@ async def part5_assignment_suite():
     )
 
     student_id = os.environ.get("STUDENT_ID", "").strip() or "SE00000"
-    try:
-        plugins = build_production_plugins()
-        audit, monitor = build_observability()
-        pipeline = {"plugins": plugins, "audit": audit, "monitor": monitor}
-        result = await run_assignment_suite(pipeline, student_id=student_id)
-        print("Suite finished.")
-        print(f"Wrote outputs under repo outputs/ (student_id={student_id})")
-        return result
-    except NotImplementedError as e:
-        print(
-            "Chưa implement TODO 8 / run_assignment_suite trong "
-            "src/assignment/pipeline.py — hoàn thành rồi chạy lại:\n"
-            "  cd src\n"
-            "  python main.py --part 5"
-        )
-        print(f"Detail: {e}")
-        return None
+    plugins = build_production_plugins()
+    audit, monitor = build_observability()
+    pipeline = {"plugins": plugins, "audit": audit, "monitor": monitor}
+    result = await run_assignment_suite(pipeline, student_id=student_id)
+    print("Suite finished.")
+    print(f"Wrote outputs under repo outputs/ (student_id={student_id})")
+    return result
 
 
 async def main(parts=None):
@@ -185,10 +190,14 @@ async def main(parts=None):
     Args:
         parts: List of part numbers to run, or None for all
     """
-    setup_api_key()
-
     if parts is None:
         parts = [1, 2, 3, 4]
+
+    # Parts 4 and 5 exercise deterministic local policy and should be runnable
+    # during CI/offline verification.  Network-backed attack/comparison parts
+    # still request a credential through the existing setup helper.
+    if any(part in {1, 3} for part in parts):
+        setup_api_key()
 
     for part in parts:
         if part == 1:
@@ -219,7 +228,7 @@ if __name__ == "__main__":
         choices=[1, 2, 3, 4, 5],
         help=(
             "1=attacks, 2=guardrails, 3=testing, 4=HITL, "
-            "5=assignment suite→outputs/*.json"
+            "5=assignment suite->outputs/*.json"
         ),
     )
     args = parser.parse_args()

@@ -1,7 +1,7 @@
 """
 Lab 11 — Helper Utilities
 """
-from google.genai import types
+from core.adk_compat import types
 
 
 async def chat_with_agent(agent, runner, user_message: str, session_id=None):
