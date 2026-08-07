@@ -1,11 +1,13 @@
 {
-  "generated_at": "2026-08-07T07:19:42.978780+00:00",
+  "generated_at": "2026-08-07T15:08:52.266029+00:00",
   "submission_dir": "D:\\duc\\uni\\VINAI\\solo\\K3-Day-11-Guardrails-HITL-Responsible-AI",
-  "technical_failure": true,
+  "technical_failure": false,
   "packaging": {
-    "ok": false,
+    "ok": true,
     "details": {
-      "report": [],
+      "report": [
+        "MSSV_report.md"
+      ],
       "audit": true,
       "metrics": true,
       "results": true,
@@ -20,7 +22,7 @@
   },
   "public_tests": {
     "returncode": 0,
-    "stdout": ".............                                                            [100%]\n13 passed in 2.10s\n",
+    "stdout": ".............                                                            [100%]\n13 passed in 0.20s\n",
     "stderr": "",
     "technical_failure": false
   },
