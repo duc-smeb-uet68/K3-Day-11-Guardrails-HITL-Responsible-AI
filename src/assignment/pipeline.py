@@ -14,6 +14,7 @@ from types import SimpleNamespace
 from urllib.parse import urlparse
 
 from core.adk_compat import types
+from core.model_provider import has_openrouter_api_key
 
 from assignment.audit_log import AuditLogPlugin
 from assignment.monitoring import MonitoringAlert
@@ -267,7 +268,7 @@ async def run_assignment_suite(pipeline, student_id: str) -> dict:
     # offline run we state that it was not contacted rather than pretending an
     # LLM issued a verdict; production callbacks still fail closed on failure.
     judge_text = "The 12-month savings rate is subject to the published VinBank schedule."
-    if os.environ.get("GOOGLE_API_KEY"):
+    if has_openrouter_api_key():
         judge_result = await llm_safety_check(judge_text)
         monitor.judge_checks += 1
         if not judge_result["safe"]:

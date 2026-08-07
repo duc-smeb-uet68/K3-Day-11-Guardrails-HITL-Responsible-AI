@@ -10,6 +10,7 @@ import re
 import unicodedata
 
 from core.adk_compat import base_plugin, llm_agent, runners, types
+from core.model_provider import build_openrouter_model
 
 from core.utils import chat_with_agent
 
@@ -115,23 +116,25 @@ If UNSAFE, add a brief reason on the next line.
 """
 
 
-# Instantiation is local; a model call happens only in ``llm_safety_check``.
-# If the judge cannot be initialized or contacted, the caller fails closed.
-try:
-    safety_judge_agent = llm_agent.LlmAgent(
-        model="gemini-3.1-flash-lite",
-        name="safety_judge",
-        instruction=SAFETY_JUDGE_INSTRUCTION,
-    )
-except Exception:
-    safety_judge_agent = None
+# The judge is initialized lazily so ``.env`` can be loaded before a live call.
+# If it cannot be initialized or contacted, the caller still fails closed.
+safety_judge_agent = None
 judge_runner = None
 
 
 def _init_judge():
     """Create the separate in-memory runner once and return it."""
-    global judge_runner
-    if safety_judge_agent is not None and judge_runner is None:
+    global judge_runner, safety_judge_agent
+    if safety_judge_agent is None:
+        try:
+            safety_judge_agent = llm_agent.LlmAgent(
+                model=build_openrouter_model(),
+                name="safety_judge",
+                instruction=SAFETY_JUDGE_INSTRUCTION,
+            )
+        except Exception:
+            return None
+    if judge_runner is None:
         judge_runner = runners.InMemoryRunner(
             agent=safety_judge_agent, app_name="safety_judge"
         )
@@ -146,12 +149,9 @@ async def llm_safety_check(response_text: str) -> dict:
     """
     if not str(response_text or "").strip():
         return {"safe": True, "verdict": "SAFE"}
-    if safety_judge_agent is None:
-        return {"safe": False, "verdict": "UNSAFE: judge unavailable (fail closed)"}
-
     if judge_runner is None:
         _init_judge()
-    if judge_runner is None:
+    if safety_judge_agent is None or judge_runner is None:
         return {"safe": False, "verdict": "UNSAFE: judge initialization failed"}
 
     try:

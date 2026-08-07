@@ -5,11 +5,22 @@ import os
 
 
 def setup_api_key():
-    """Load Google API key from environment or prompt."""
-    if "GOOGLE_API_KEY" not in os.environ:
-        os.environ["GOOGLE_API_KEY"] = input("Enter Google API Key: ")
-    os.environ["GOOGLE_GENAI_USE_VERTEXAI"] = "0"
-    print("API key loaded.")
+    """Load an OpenRouter API key from ``.env`` or prompt for it once."""
+    try:
+        from dotenv import load_dotenv
+
+        load_dotenv()
+    except ImportError:
+        # Environment variables still work if the optional loader is absent.
+        pass
+
+    api_key = os.environ.get("OPENROUTER_API_KEY", "").strip()
+    if not api_key:
+        api_key = input("Enter OpenRouter API Key: ").strip()
+        if not api_key:
+            raise RuntimeError("OPENROUTER_API_KEY is required for live model calls.")
+        os.environ["OPENROUTER_API_KEY"] = api_key
+    print("OpenRouter API key loaded.")
 
 
 # Allowed banking topics (used by topic_filter)

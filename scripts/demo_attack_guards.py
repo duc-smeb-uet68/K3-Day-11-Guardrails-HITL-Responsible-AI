@@ -47,7 +47,6 @@ def offline_gate(prompt: str) -> str:
 
 
 async def live_attack(prompts_to_try: list[tuple[str, str]]) -> list[dict]:
-    os.environ.setdefault("GOOGLE_GENAI_USE_VERTEXAI", "0")
     agent, runner = create_guards_agent()
     print("\n=== LIVE attacks on Guards Agent ===\n")
     results = []
@@ -117,10 +116,10 @@ async def main() -> None:
             pass_live.append((name, prompt))
         print()
 
-    key = os.environ.get("GOOGLE_API_KEY", "").strip()
+    key = os.environ.get("OPENROUTER_API_KEY", "").strip()
     if not key:
         print(
-            "No GOOGLE_API_KEY / .env — stopped before live LLM calls.\n"
+            "No OPENROUTER_API_KEY / .env — stopped before live LLM calls.\n"
             "Add key to .env then re-run: python scripts/demo_attack_guards.py"
         )
         print(f"Prompts that would reach the model: {len(pass_live)}")

@@ -3,6 +3,12 @@ from __future__ import annotations
 
 import textwrap
 
+from core.model_provider import (
+    OPENROUTER_API_BASE,
+    OPENROUTER_MODEL_SLUG,
+    has_openrouter_api_key,
+)
+
 try:
     from nemoguardrails import LLMRails, RailsConfig
 
@@ -12,11 +18,14 @@ except ImportError:
     print("NeMo Guardrails not installed. Run: pip install nemoguardrails>=0.10.0")
 
 
-NEMO_YAML_CONFIG = textwrap.dedent("""\
+NEMO_YAML_CONFIG = textwrap.dedent(f"""\
     models:
       - type: main
-        engine: google
-        model: gemini-3.1-flash-lite
+        engine: openai
+        model: {OPENROUTER_MODEL_SLUG}
+        api_key_env_var: OPENROUTER_API_KEY
+        parameters:
+          base_url: {OPENROUTER_API_BASE}
 
     rails:
       input:
@@ -26,7 +35,7 @@ NEMO_YAML_CONFIG = textwrap.dedent("""\
       output:
         flows:
           - check bot response
-""")
+    """)
 
 
 # These conversational rules complement, rather than replace, the deterministic
@@ -117,6 +126,9 @@ def init_nemo():
     global nemo_rails
     if not NEMO_AVAILABLE:
         print("Skipping NeMo init — nemoguardrails not installed.")
+        return None
+    if not has_openrouter_api_key():
+        print("Skipping NeMo init — OPENROUTER_API_KEY is not configured.")
         return None
 
     config = RailsConfig.from_content(

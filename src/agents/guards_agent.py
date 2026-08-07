@@ -30,6 +30,7 @@ from agents.security_boundary import (
     normalize_for_security,
 )
 from core.config import ALLOWED_TOPICS, BLOCKED_TOPICS
+from core.model_provider import build_openrouter_model
 from core.utils import chat_with_agent
 
 # Secrets embedded in the guarded system prompt (same values as unsafe agent).
@@ -243,7 +244,7 @@ def create_guards_agent():
     """Create VinBank agent with strong input + output guardrails (bonus target)."""
     plugins = [GuardsInputPlugin(), GuardsOutputPlugin()]
     agent = llm_agent.LlmAgent(
-        model="gemini-3.1-flash-lite",
+        model=build_openrouter_model(),
         name="guards_assistant",
         instruction=GUARDS_INSTRUCTION,
     )

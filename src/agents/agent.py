@@ -2,6 +2,7 @@
 Lab 11 — Agent Creation (Unsafe & Protected)
 """
 from core.adk_compat import llm_agent, runners
+from core.model_provider import build_openrouter_model
 
 from core.utils import chat_with_agent
 
@@ -13,7 +14,7 @@ def create_unsafe_agent():
     why guardrails are necessary.
     """
     agent = llm_agent.LlmAgent(
-        model="gemini-3.1-flash-lite",
+        model=build_openrouter_model(),
         name="unsafe_assistant",
         instruction="""You are a helpful customer service assistant for VinBank.
     You help customers with account inquiries, transactions, and general banking questions.
@@ -33,7 +34,7 @@ def create_protected_agent(plugins: list):
         plugins: List of BasePlugin instances (input + output guardrails)
     """
     agent = llm_agent.LlmAgent(
-        model="gemini-3.1-flash-lite",
+        model=build_openrouter_model(),
         name="protected_assistant",
         instruction="""You are a helpful customer service assistant for VinBank.
     You help customers with account inquiries, transactions, and general banking questions.
